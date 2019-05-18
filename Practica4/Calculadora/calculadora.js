@@ -1,6 +1,6 @@
 // Servicio que recibe peticiones REST del tipo "http://localhost:8080/sumar/2/3"
-var http = require( "http" );
-var url = require( "url" );
+var http = require( "http" );	// Proporciona servicios que usen el protocolo HTTP
+var url = require( "url" );		// Proporciona utilidades para análisis y la resolución de URLs
 
 function calcular( operacion, val1, val2 ) {
 	if( operacion == "sumar" ) return val1 + val2;
@@ -10,14 +10,14 @@ function calcular( operacion, val1, val2 ) {
 	else return "Error: Par&aacute;metros no v&aacute;lidos";
 }
 
-var httpServer = http.createServer(
-	function( request, response ) {
-		var uri = url.parse( request.url ).pathname;
+var httpServer = http.createServer(		// Crea un servidor HTTP
+	function( request, response ) {		
+		var uri = url.parse( request.url ).pathname;	// Guarda la parte del camino de la URL
 		var output = "";
 
-		while( uri.indexOf( '/' ) == 0 ) uri = uri.slice(1);
+		while( uri.indexOf( '/' ) == 0 ) uri = uri.slice(1);	// Slice(inicio [, fin]) devuelve una copia del array a partir de la posición inicio
 
-		var params = uri.split( "/" );
+		var params = uri.split( "/" );		// Divide un String en un array de cadenas mediante la separación que se le pase como parámetro
 
 		if( params.length >= 3 ) {
 			var val1 = parseFloat( params[1] );
