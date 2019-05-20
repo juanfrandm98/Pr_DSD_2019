@@ -30,7 +30,7 @@
 			var oper = document.getElementById( "operacion" ).value;
 
 			var url = serviceURL+"/"+oper+"/"+val1+"/"+val2;
-			var httpRequest = new XMLHttpRequest();
+			var httpRequest = new XMLHttpRequest();				// Petición de tipo REST
 			httpRequest.onreadystatechange = function() {
 				if( httpRequest.readyState == 4 ) {
 					var resultado = document.getElementById( "resul" );

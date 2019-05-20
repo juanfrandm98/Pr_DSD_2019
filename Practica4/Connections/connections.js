@@ -1,7 +1,12 @@
-var http = require( "http" );
-var url = require( "url" );
-var fs = require( "fs" );
-var path = require( "path" );
+// Envía una notificación que contiene las direcciones de todos los clientes conectados
+// al servicio cada vez que un nuevo cliente se conecta o desconecta mediante emit().
+// Cuando el servicio recibe un evento del tipo "output-evt" le envía al cliente el
+// mensaje "Hola Cliente!"
+
+var http = require( "http" );		// Servicios que usen el protocolo HTTP
+var url = require( "url" );			// Servicios que usen las URLs
+var fs = require( "fs" );			// Operaciones con ficheros
+var path = require( "path" );		// Utilizar la ruta como cadena de caracteres
 var socketio = require( "socket.io" );
 var mimeTypes = { "html": "text/html", "jpeg": "image/jpeg", "jpg": "image/jpeg",
 				  "png": "image/png", "js": "text/javascript", "css": "text/css",
@@ -53,15 +58,37 @@ io.sockets.on( 'connection',
 			client.emit( 'output-evt', 'Hola Cliente!' );
 		});
 		client.on( 'disconnect', function() {
-			var index = allClients.indexOf( client.request.connection.remoteAddress );
+			var index = -1;
+
+			for( var i = 0; i < allClients.length; i++ )
+				if( allClients[i].address == client.request.connection.remoteAddress )
+					if( allClients[i].port == client.request.connection.remotePort )
+						index = i;
+
 			if( index != -1 ) {
 				allClients.splice( index, 1 );
 				io.sockets.emit( 'all-connections', allClients );
 			}
 			console.log( 'El usuario ' + client.request.connection.remoteAddress +
-						 ' se ha desconectado' );
+						 ' se ha desconectado' + index );
 		});
 	}
 );
 
 console.log( "Servicio Socket.io iniciado" );
+// Eventos de socket.io:
+// 		- 'connect'/'connection': se emite al realizarse una conexión correctamente
+//		- 'reconnecting': notifica un intento de reconexión
+// 		- 'disconnect': notificación de la desconexión entre cliente y servicio
+//		- 'connect-failed': se emite cuando socket.io no es capaz de establecer una conexión
+//		- 'error': notificación de un error que no puede ser tratado mediante cualquier otro
+//		  evento por defecto
+//		- 'message': la función emit() es la que notifica eventos. También está la función
+//		  send(), que envía información arbitraria a nivel de sockets. Si usamos la segunda,
+//		  se notificará este evento en el receptor para que pueda gestionar la información
+//		  recibida
+//		- 'anything': notificación de que se ha recibido cualquier tipo de evento definido por
+//		  el usuario. No se recibe para los eventos de esta lista
+//		- 'reconnect': se emite cuando un cliente trata de reconectarse a un servicio
+//		- 'reconnect_failed': error de reconexión a un servicio
+//		- 'reconnectiong': notificación de que un cliente está tratando de reconectarse al servicio

@@ -20,7 +20,7 @@ var httpServer = http.createServer(
 	function( request, response ) {
 		var uri = url.parse( request.url ).pathname;
 		if( uri == "/" ) uri = "/calc.html";
-		var fname = path.join( process.cwd(), uri );
+		var fname = path.join( process.cwd(), uri );	// process.cwd() devuelve el directorio de trabajo actual
 		fs.exists( fname, function( exists ) {
 			if( exists ) {
 				fs.readFile( fname, function( err, data ) {
