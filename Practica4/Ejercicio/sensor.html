@@ -1,0 +1,62 @@
+<html>
+
+	<head>
+
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>Sensor</title>
+
+	</head>
+
+	<body>
+
+		<div id="form_sensor">
+			<h2> Simulación de sensores </h2>
+			<form action="javascript:void(0);" onSubmit="javascript:actualizarValores();">
+				Luminosidad: <input type="label" id="form_lum" /><br />
+				Temperatura: <input type="label" id="form_tem" /><br />
+				<input type="submit" value="Actualizar" />
+			</form>
+		</div>
+
+		<div id="div_valores">
+			<h2> Valores actuales </h2>
+			<p> Luminosidad: <span id="actual_lum"></span> </p>
+			<p> Temperatura: <span id="actual_tem"></span> </p>
+		</div>
+			
+	</body>
+
+	<script src="/socket.io/socket.io.js"></script>
+	<script type="text/javascript">
+
+		var serviceURL = document.URL;
+		var socket = io.connect( serviceURL );
+
+		function actualizarValores() {
+			var luminosidad = document.getElementById( 'form_lum' );
+			var temperatura = document.getElementById( 'form_tem' );
+
+			socket.emit( 'actualizar', {lum:luminosidad, tem:temperatura} );
+			socket.emit( 'mostrar', )
+		}
+
+		function mostrarValores( nuevosValores ) {
+			var act_lum = document.getElementById( 'actual_lum' );
+			var act_tem = document.getElementById( 'actual_tem' );
+
+			act_lum.innerHTML = nuevosValores.lum;
+			act_tem.innerHTML = nuevosValores.tem;
+		}
+
+		socket.on( 'connect', function() {
+
+		});
+
+		socket.on( 'mostrar', function( nuevosValores ) {
+			mostrarValores( nuevosValores );
+		});
+
+
+	</script>
+
+</html>

@@ -5,12 +5,85 @@
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 		<title>Cliente</title>
 
+		<style>
+			.aviso { color: orange; }
+			.peligro { color: red; }
+		</style>
+
 	</head>
 
 	<body>
 
-		
+		<div id="div_valores">
+			<h2> Valores actuales </h2>
+			<p> Luminosidad: <span id="actual_lum"></span> </p>
+			<p> Temperatura: <span id="actual_tem"></span> </p>
+		</div>
+
+		<div id="div_estados">
+			<h2> Persianas </h2>
+			<p> Estado: <span id="actual_per"></span> </p>
+			<button id="cambiar_persiana"> Cambiar </button>
+
+			<h2> Aire Acondicionado </h2>
+			<p> Estado: <span id="acutal_ac"></span> </p>
+			<button id="cambiar_ac"> Cambiar </button>
+		</div>
+
+		<div>
+			<h2> Avisos </h2>
+			<p class="aviso"> Debería encender el aire acondicionado </p>
+			<p class="aviso"> Debería apagar el aire acondicionado </p>
+			<p class="peligro"> El aire acondicioando se ha encendido automáticamente </p>
+			<p class="peligro"> El aire acondicionado se ha apagado automáticamente </p>
+			<p class="aviso"> Debería abrir las persianas </p>
+			<p class="aviso"> Debería cerrar las persianas </p>
+			<p class="peligro"> Las persianas se han abierto automáticamente </p>
+			<p class="peligro"> Las persianas se han cerrado automáticamente </p>
+		</div>
 			
 	</body>
+
+	<script src="/socket.io/socket.io.js"></script>
+	<script type="text/javascript">
+		var serviceURL = document.URL;
+		var socket = io.connect( serviceURL );
+
+		function mostrarValores( nuevosValores ) {
+			var act_lum = document.getElementById( 'actual_lum' );
+			var act_tem = document.getElementById( 'actual_tem' );
+
+			act_lum.innerHTML = nuevosValores.lum;
+			act_tem.innerHTML = nuevosValores.tem;
+		}
+
+		socket.on( 'connect', function() {
+
+		});
+
+		socket.on( 'mostrar', function( nuevosValores ) {
+			mostrarValores( nuevosValores );
+		});
+
+		socket.on( 'nuevo_estado_persiana', function( estado ) {
+			var act_per = document.getElementById( 'actual_per' );
+			act_per.innerHTML = estado;
+		});
+
+		socket.on( 'nuevo_estado_ac', function( estado ) {
+			var act_ac = document.getElementById( 'actual_ac' );
+			act_ac.innerHTML = estado;
+		});
+
+		var boton_per = document.getElementById( 'cambiar_per' );
+		boton_per.onclick = function() {
+			socket.emit( 'cambiar_persiana' );
+		}
+
+		var boton_ac = document.getElementById( 'cambiar_ac' );
+		boton_ac.onclick = function() {
+			socket.emit( 'cambiar_ac' );
+		}
+	</script>
 
 </html>

@@ -9,13 +9,81 @@
 
 	<body>
 
-
+		<h2> Agente regulador automático </h2>
+		<h3> Temperaturas </h3>
+		<ul>
+			<li> Temperatura mínima para cambio: 5ºC </li>
+			<li> Temperatura mínima para aviso: 15ºC </li>
+			<li> Temperatura máxima para aviso: 35ºC </li>
+			<li> Tempeartura máxima para cambio: 40ªC </li>
+		</ul>
+		<h3> Luminosidad </h3>
+		<ul>
+			<li> Luminosidad mínima para cambio: 20% </li>
+			<li> Luminosidad mínima para aviso: 30% </li>
+			<li> Luminosidad máxima para aviso: 70% </li>
+			<li> Luminosidad máxima para cambio: 80% </li>
+		</ul>
 
 	</body>
 
 	<script src="/socket.io/socket.io.js"></script>
 	<script type="text/javascript">
+		var serviceURL = document.URL;
+		var socket = io.connect( serviceURL );
 
+		var temp_min_ca = 5;
+		var temp_min_av = 15;
+		var temp_max_av = 35;
+		var temp_max_ca = 40;
+
+		var lum_min_ca = 20;
+		var lum_min_av = 30;
+		var lum_max_av = 70;
+		var lum_max_ca = 80;
+
+		var temp;
+		var lum;
+		var persianas;
+		var ac;
+
+		function comprobarLuminosidad() {
+			if( lum <= 20 && persianas == "cerradas" )
+				socket.emit( 'abrir_persianas' );
+			else if( lum > 20 && lum <= 30 && persianas == "cerradas" )
+				socket.emit( 'aviso_abrir_persianas' );
+			else if( lum >= 70 && lum < 80 && persianas == "abiertas" )
+				socket.emit( 'aviso_cerrar_persianas' );
+			else if( lum >= 80 && persianas == "abiertas" )
+				socket.emit( 'cerrar_persianas' );
+		}
+
+		function comprobarTemperatura() {
+			if( temp <= 5 && ac == "encendido" )
+				socket.emit( 'apagar_ac' );
+			else if( temp > 5 && temp <= 15 && ac == "encendido" )
+				socket.emit( 'aviso_apagar_ac' );
+			else if( temp >= 35 && temp < 40 && ac == "apagado" )
+				socket.emit( 'aviso_encender_ac' );
+			else if( temp >= 40 && ac == "apagado" )
+				socket.emit( 'encender_ac' );
+		}
+
+		socket.on( 'mostrar', function( nuevosValores ) {
+			temp = nuevosValores.tem;
+			lum  = nuevosValores.lum;
+
+			comprobarTemperatura();
+			comprobarLuminosidad();
+		});
+
+		socket.on( 'nuevo_estado_persiana', function( estado ) {
+			persianas = estado;
+		});
+
+		socket.on( 'nuevo_estado_ac', function( estado ) {
+			ac = estado;
+		});
 	</script>
 
 </html>
