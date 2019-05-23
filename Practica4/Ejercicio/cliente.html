@@ -41,6 +41,11 @@
 			<h2>Conexiones en el servidor</h2>
 			<div id="lista_conexiones"></div>
 		</div>
+
+		<div class="historico">
+			<h2>Últimas actualizaciones</h2>
+			<div id="lista_cambios"></div>
+		</div>
 			
 	</body>
 
@@ -96,12 +101,27 @@
 	  		var listElement = document.createElement( 'ul' );
 	  		listContainer.appendChild( listElement );
 	  		var num = datos.length;
-	  		for( var i = 0; i < num; i++ ){
+	  		for( var i = 0; i < num; i++ ) {
 	  			var listItem = document.createElement( 'li' );
 	  			listItem.innerHTML = datos[i].tipo + ': ' + datos[i].identificador +
 	  								 ' (' + datos[i].address + ':' + datos[i].port + ')';
 	  			listElement.appendChild( listItem );
 	  		}
+	    }
+
+	    function actualizarCambios( datos ) {
+	    	var listContainer = document.getElementById( 'lista_cambios' );
+	    	listContainer.innerHTML='';
+	    	var listElement = document.createElement( 'ul' );
+	    	listContainer.appendChild( listElement );
+	    	var num = datos.length;
+	    	for( var i = 0; i < num; i++ ) {
+	    		var listItem = document.createElement( 'li' );
+	    		listItem.innerHTML = datos[i].afectado + ': ' + datos[i].valor_antiguo +
+	    							 ' -> ' + datos[i].valor_nuevo + ' (' +
+	    							 datos[i].momento + ')';
+	    		listElement.appendChild( listItem );
+	    	}
 	    }
 
 		socket.on( 'peticion_tipo', function() {
@@ -220,6 +240,10 @@
 
 		socket.on( 'conexiones', function( datos ) {
 			actualizarConexiones( datos );
+		});
+
+		socket.on( 'cambios', function( datos ) {
+			actualizarCambios( datos );
 		});
 	</script>
 

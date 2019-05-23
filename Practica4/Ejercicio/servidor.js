@@ -85,7 +85,7 @@ MongoClient.connect( "mongodb://127.0.0.1:27017", function( err, db ) {
 
 		// El cliente envía qué tipo de conexión es (sensor, agente o cliente)
 		client.on( 'respuesta_tipo', function( tipo ) {
-			console.log( 'Nueva conexión desde ' + client.request.connection.remoteAddress +
+			console.log( '\nNueva conexión desde ' + client.request.connection.remoteAddress +
 						 ':' + client.request.connection.remotePort + ', se trata de un ' +
 						 tipo );
 
@@ -109,105 +109,213 @@ MongoClient.connect( "mongodb://127.0.0.1:27017", function( err, db ) {
 
 		// Un sensor manda una nueva luminosidad
 		client.on( 'actualizar_luminosidad', function( lum ) {
+			luminosidad_vieja = luminosidad;
 			luminosidad = lum;
-			console.log( 'Nueva luminosidad detectada: ' + luminosidad );
+			dateTime = new Date();
+			console.log( '\nNueva luminosidad detectada: ' + luminosidad );
+
+			dbo.collection( "cambiosEstado" ).insertOne( {afectado:'Luminosidad',
+														 valor_antiguo:luminosidad_vieja,
+														 valor_nuevo:luminosidad,
+														 momento:dateTime},
+														 {safe:true}, function( err, result ) {
+				if( !err ) {
+					console.log( "Cambio de luminosidad insertado en la colección de Mongo." );
+					dbo.collection( "cambiosEstado" ).find().sort( {$natural:-1} ).limit(5).toArray( function( err, results ) {
+						io.sockets.emit( 'cambios', results );
+					});
+				} else {
+					console.log( "Error al introducir el cambio de luminosidad en la colección de Mongo." );
+				}
+			});
+
 			io.sockets.emit( 'nueva_luminosidad', luminosidad );
 		});
 
 		// Un sensor manda una nueva temperatura
 		client.on( 'actualizar_temperatura', function( tem ) {
+			temperatura_vieja = temperatura;
 			temperatura = tem;
-			console.log( 'Nueva temperatura detectada: ' + temperatura );
+			dateTime = new Date();
+			console.log( '\nNueva temperatura detectada: ' + temperatura );
+
+			dbo.collection( "cambiosEstado" ).insertOne( {afectado:'Temperatura',
+														  valor_antiguo:temperatura_vieja,
+														  valor_nuevo:temperatura,
+														  momento:dateTime},
+														  {safe:true}, function( err, result ) {
+				if( !err ) {
+					console.log( "Cambio de temperatura insertado en la colección de Mongo." );
+					dbo.collection( "cambiosEstado" ).find().sort( {$natural:-1} ).limit(5).toArray( function( err, results ) {
+						io.sockets.emit( 'cambios', results );
+					});
+				} else {
+					console.log( "Error al introducir el cambio de temperatura en la colección de Mongo." );
+				}
+			});
+
 			io.sockets.emit( 'nueva_temperatura', temperatura );
 		});
 
 		// Un cliente solicita cambiar el estado de las persianas
 		client.on( 'cambiar_persianas', function() {
-			console.log( 'Nueva solicitud para cambiar el estado de las persianas.' );
+			console.log( '\nNueva solicitud para cambiar el estado de las persianas.' );
 			io.sockets.emit( 'solicitud_persianas' );
 		});
 
 		// Un sensor permite cambiar el estado de las persianas y manda el nuevo
 		client.on( 'adelante_persianas', function( nuevo_estado ) {
+			persianas_viejas = persianas;
 			persianas = nuevo_estado;
+			dateTime = new Date();
 			console.log( 'Nuevo estado de las persianas: ' + persianas );
+
+			dbo.collection( "cambiosEstado" ).insertOne( {afectado:'Persianas',
+														  valor_antiguo:persianas_viejas,
+														  valor_nuevo:persianas,
+														  momento:dateTime},
+														  {safe:true}, function( err, result ) {
+				if( !err ) {
+					console.log( "Cambio de persianas insertado en la colección de Mongo." );
+					dbo.collection( "cambiosEstado" ).find().sort( {$natural:-1} ).limit(5).toArray( function( err, results ) {
+						io.sockets.emit( 'cambios', results );
+					});
+				} else {
+					console.log( "Error al introducir el cambio de temperatura en la colección de Mongo." );
+				}
+			});
+
 			io.sockets.emit( 'nueva_persiana', persianas );
 		});
 
 		// Un sensor permite cambiar el estado de las persianas por un agente y manda el nuevo
 		client.on( 'adelante_persianas_agente', function( nuevo_estado ) {
+			persianas_viejas = persianas;
 			persianas = nuevo_estado;
+			dateTime = new Date();
 			console.log( 'Nuevo estado de las persianas: ' + persianas );
+
+			dbo.collection( "cambiosEstado" ).insertOne( {afectado:'Persianas',
+														  valor_antiguo:persianas_viejas,
+														  valor_nuevo:persianas,
+														  momento:dateTime},
+														  {safe:true}, function( err, result ) {
+				if( !err ) {
+					console.log( "Cambio de persianas insertado en la colección de Mongo." );
+					dbo.collection( "cambiosEstado" ).find().sort( {$natural:-1} ).limit(5).toArray( function( err, results ) {
+						io.sockets.emit( 'cambios', results );
+					});
+				} else {
+					console.log( "Error al introducir el cambio de temperatura en la colección de Mongo." );
+				}
+			});
+
 			io.sockets.emit( 'nueva_persiana', persianas );
 			io.sockets.emit( 'nueva_persiana_agente', persianas );
 		});
 
 		// Un cliente solicita cambiar el estado del ac
 		client.on( 'cambiar_ac', function() {
-			console.log( 'Nueva solicitud para cambiar el estado del ac.' );
+			console.log( '\nNueva solicitud para cambiar el estado del ac.' );
 			io.sockets.emit( 'solicitud_ac' );
 		});
 
 		// Un sensor permite cambiar el estado del ac por un agente y manda el nuevo
 		client.on( 'adelante_ac_agente', function( nuevo_estado ) {
+			aire_viejo = aire;
 			aire = nuevo_estado;
+			dateTime = new Date();
 			console.log( 'Nuevo estado del ac: ' + aire );
+
+			dbo.collection( "cambiosEstado" ).insertOne( {afectado:'AC',
+														  valor_antiguo:aire_viejo,
+														  valor_nuevo:aire,
+														  momento:dateTime},
+														  {safe:true}, function( err, result ) {
+				if( !err ) {
+					console.log( "Cambio de AC insertado en la colección de Mongo." );
+					dbo.collection( "cambiosEstado" ).find().sort( {$natural:-1} ).limit(5).toArray( function( err, results ) {
+						io.sockets.emit( 'cambios', results );
+					});
+				} else {
+					console.log( "Error al introducir el cambio de temperatura en la colección de Mongo." );
+				}
+			});
+
 			io.sockets.emit( 'nuevo_ac', aire );
 			io.sockets.emit( 'nuevo_ac_agente', aire );
 		});
 
 		// Un sensor permite cambiar el estado del ac y manda el nuevo
 		client.on( 'adelante_ac', function( nuevo_estado ) {
+			aire_viejo = aire;
 			aire = nuevo_estado;
+			dateTime = new Date();
 			console.log( 'Nuevo estado del ac: ' + aire );
+
+			dbo.collection( "cambiosEstado" ).insertOne( {afectado:'AC',
+														  valor_antiguo:aire_viejo,
+														  valor_nuevo:aire,
+														  momento:dateTime},
+														  {safe:true}, function( err, result ) {
+				if( !err ) {
+					console.log( "Cambio de AC insertado en la colección de Mongo." );
+					dbo.collection( "cambiosEstado" ).find().sort( {$natural:-1} ).limit(5).toArray( function( err, results ) {
+						io.sockets.emit( 'cambios', results );
+					});
+				} else {
+					console.log( "Error al introducir el cambio de temperatura en la colección de Mongo." );
+				}
+			});
+
 			io.sockets.emit( 'nuevo_ac', aire );
 		});
 
 		// Un agente avisa que hay que abrir las persianas
 		client.on( 'aviso_abrir_persianas', function() {
-			console.log( 'El agente avisa a los clientes para que abran las persianas.' );
+			console.log( '\nEl agente avisa a los clientes para que abran las persianas.' );
 			io.sockets.emit( 'aviso_abrir_persianas' );
 		});
 
 		// Un agente avisa que hay que cerrar las persianas
 		client.on( 'aviso_cerrar_persianas', function() {
-			console.log( 'El agente avisa a los clientes para que cierren las persianas.' );
+			console.log( '\nEl agente avisa a los clientes para que cierren las persianas.' );
 			io.sockets.emit( 'aviso_cerrar_persianas' );
 		});
 
 		// Un agente obliga a cambiar el estado de las persianas
 		client.on( 'forzar_persianas', function() {
-			console.log( 'El agente quiere modificar el estado de las persianas.' );
+			console.log( '\nEl agente quiere modificar el estado de las persianas.' );
 			io.sockets.emit( 'solicitud_persianas_agente' );
 		});
 
 		// Un agente avisa que hay que encender el ac
 		client.on( 'aviso_encender_ac', function() {
-			console.log( 'El agente avisa a los clientes para que enciendan el ac.' );
+			console.log( '\nEl agente avisa a los clientes para que enciendan el ac.' );
 			io.sockets.emit( 'aviso_encender_ac' );
 		});
 
 		// Un agente avisa que hay que apagar el ac
 		client.on( 'aviso_apagar_ac', function() {
-			console.log( 'El agente avisa a los clientes para que apaguen el ac.' );
+			console.log( '\nEl agente avisa a los clientes para que apaguen el ac.' );
 			io.sockets.emit( 'aviso_apagar_ac' );
 		});
 
 		// Un agente obliga a cambiar el estado del ac
 		client.on( 'forzar_ac', function() {
-			console.log( 'El agente quiere modificar el estado del ac.' );
+			console.log( '\nEl agente quiere modificar el estado del ac.' );
 			io.sockets.emit( 'solicitud_ac_agente' );
 		});
 
 		// Un agente quita los avisos de persianas (amarillos) de los clientes
 		client.on( 'quitar_aviso_persianas', function() {
-			console.log( 'El agente detecta que el nivel de luminosidad vuelve a ser normal.' );
+			console.log( '\nEl agente detecta que el nivel de luminosidad vuelve a ser normal.' );
 			io.sockets.emit( 'quitar_aviso_persianas' );
 		});
 
 		// Un agente quita los avisos de ac (amarillos) de los clientes
 		client.on( 'quitar_aviso_ac', function() {
-			console.log( 'El agente detecta que la temperatura vuelve a ser normal.' );
+			console.log( '\nEl agente detecta que la temperatura vuelve a ser normal.' );
 			io.sockets.emit( 'quitar_aviso_ac' );
 		});
 
@@ -217,12 +325,12 @@ MongoClient.connect( "mongodb://127.0.0.1:27017", function( err, db ) {
 
 			dbo.collection( "conexiones" ).findOneAndDelete( {identificador:identificador}, {safe:true}, function( err, result ) {
 				if( !err ) {
-					console.log( 'El usuario ' + identificador + ' se ha desconectado.' );
+					console.log( '\nEl usuario ' + identificador + ' se ha desconectado.' );
 					dbo.collection( "conexiones" ).find().toArray( function( err, results ) {
 						io.sockets.emit( 'conexiones', results );
 					});
 				} else
-					console.log( 'El usuario ' + identificador + ' no pudo desconectarse.' );
+					console.log( '\nEl usuario ' + identificador + ' no pudo desconectarse.' );
 			});
 		});
 	});
