@@ -4,42 +4,37 @@
 
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 		<title>Cliente</title>
-
-		<style>
-			.aviso { color: orange; }
-			.peligro { color: red; }
-		</style>
+		<link href="estilo.css" rel="stylesheet" type="text/css">
 
 	</head>
 
 	<body>
 
-		<div id="div_valores">
-			<h2> Valores actuales </h2>
-			<p> Luminosidad: <span id="actual_lum"></span> </p>
-			<p> Temperatura: <span id="actual_tem"></span> </p>
-		</div>
+		<div class="contenedor">
+			<div class="panel_valores">
+				<h1 class="titulo"> Cliente </h1>
+				<div id="div_valores">
+					<h2> Valores actuales </h2>
+					<p> Luminosidad: <span id="actual_lum"></span> </p>
+					<p> Temperatura: <span id="actual_tem"></span> </p>
+				</div>
 
-		<div id="div_estados">
-			<h2> Persianas </h2>
-			<p> Estado: <span id="actual_per"></span> </p>
-			<button id="cambiar_persiana"> Cambiar </button>
+				<div id="div_estados">
+					<h2> Persianas </h2>
+					<p> Estado: <span id="actual_per"></span> </p>
+					<button id="cambiar_persiana" type="button" onClick="cambiarPersianas();"> Cambiar </button>
 
-			<h2> Aire Acondicionado </h2>
-			<p> Estado: <span id="acutal_ac"></span> </p>
-			<button id="cambiar_ac"> Cambiar </button>
-		</div>
+					<h2> Aire Acondicionado </h2>
+					<p> Estado: <span id="actual_ac"></span> </p>
+					<button id="cambiar_aire" type="button" onClick="cambiarAC();"> Cambiar </button>
+				</div>
+			</div>
 
-		<div>
-			<h2> Avisos </h2>
-			<p class="aviso"> Debería encender el aire acondicionado </p>
-			<p class="aviso"> Debería apagar el aire acondicionado </p>
-			<p class="peligro"> El aire acondicioando se ha encendido automáticamente </p>
-			<p class="peligro"> El aire acondicionado se ha apagado automáticamente </p>
-			<p class="aviso"> Debería abrir las persianas </p>
-			<p class="aviso"> Debería cerrar las persianas </p>
-			<p class="peligro"> Las persianas se han abierto automáticamente </p>
-			<p class="peligro"> Las persianas se han cerrado automáticamente </p>
+			<div class = "panel_avisos">
+				<h2> Avisos </h2>
+				<p class="aviso" id="aviso_per"> </p>
+				<p class="aviso" id="aviso_ac"> </p>
+			</div>
 		</div>
 			
 	</body>
@@ -49,41 +44,160 @@
 		var serviceURL = document.URL;
 		var socket = io.connect( serviceURL );
 
-		function mostrarValores( nuevosValores ) {
-			var act_lum = document.getElementById( 'actual_lum' );
-			var act_tem = document.getElementById( 'actual_tem' );
+		var luminosidad;
+		var temperatura;
+		var persianas;
+		var aire;
 
-			act_lum.innerHTML = nuevosValores.lum;
-			act_tem.innerHTML = nuevosValores.tem;
+		function compruebaEstadoPersianas() {
+			if( persianas == "abiertas" )
+				document.getElementById( "cambiar_persiana" ).innerHTML = "Cerrar";
+			else
+				document.getElementById( "cambiar_persiana" ).innerHTML = "Abrir";
 		}
 
-		socket.on( 'connect', function() {
-
-		});
-
-		socket.on( 'mostrar', function( nuevosValores ) {
-			mostrarValores( nuevosValores );
-		});
-
-		socket.on( 'nuevo_estado_persiana', function( estado ) {
-			var act_per = document.getElementById( 'actual_per' );
-			act_per.innerHTML = estado;
-		});
-
-		socket.on( 'nuevo_estado_ac', function( estado ) {
-			var act_ac = document.getElementById( 'actual_ac' );
-			act_ac.innerHTML = estado;
-		});
-
-		var boton_per = document.getElementById( 'cambiar_per' );
-		boton_per.onclick = function() {
-			socket.emit( 'cambiar_persiana' );
+		function compruebaEstadoAC() {
+			if( aire == "encendido" )
+				document.getElementById( "cambiar_aire" ).innerHTML = "Apagar";
+			else
+				document.getElementById( "cambiar_aire" ).innerHTML = "Encender";
 		}
 
-		var boton_ac = document.getElementById( 'cambiar_ac' );
-		boton_ac.onclick = function() {
+		function quitarCualquierAvisoPersianas() {
+			var av = document.getElementById( "aviso_per" );
+
+			av.style.display = 'none';
+			av.innerHTML = '';
+		}
+
+		function quitarCualquierAvisoAC() {
+			var av = document.getElementById( "aviso_ac" );
+
+			av.style.display = 'none';
+			av.innerHTML = '';
+		}
+
+		function cambiarPersianas() {
+			socket.emit( 'cambiar_persianas' );
+		}
+
+		function cambiarAC() {
 			socket.emit( 'cambiar_ac' );
 		}
+
+		socket.on( 'peticion_tipo', function() {
+			socket.emit( 'respuesta_tipo', 'Cliente' );
+		});
+
+		socket.on( 'inicializar', function( datos ) {
+			luminosidad = datos.lum;
+			temperatura = datos.tem;
+			persianas = datos.per;
+			aire = datos.ac;
+
+			document.getElementById( "actual_lum" ).innerHTML = luminosidad;
+			document.getElementById( "actual_tem" ).innerHTML = temperatura;
+			document.getElementById( "actual_per" ).innerHTML = persianas;
+			document.getElementById( "actual_ac"  ).innerHTML = aire;
+			compruebaEstadoPersianas();
+			compruebaEstadoAC();
+		});
+
+		socket.on( 'nueva_luminosidad', function( lum ) {
+			luminosidad = lum;
+			document.getElementById( "actual_lum" ).innerHTML = luminosidad;
+		});
+
+		socket.on( 'nueva_temperatura', function( tem ) {
+			temperatura = tem;
+			document.getElementById( "actual_tem" ).innerHTML = temperatura;
+		});
+
+		socket.on( 'nueva_persiana', function( per ) {
+			persianas = per;
+			document.getElementById( "actual_per" ).innerHTML = persianas;
+			compruebaEstadoPersianas();
+			quitarCualquierAvisoPersianas();
+		});
+
+		socket.on( 'nuevo_ac', function( ac ) {
+			aire = ac;
+			document.getElementById( "actual_ac" ).innerHTML = aire;
+			compruebaEstadoAC();
+			quitarCualquierAvisoAC();
+		});
+
+		socket.on( 'aviso_abrir_persianas', function() {
+			var av = document.getElementById( "aviso_per" );
+
+			av.style.display='inline';
+			av.className='aviso';
+			av.innerHTML = 'El nivel de luminosidad está bajando mucho. Debería abrir las persianas. Si sigue bajando, se abrirán automáticamente.';
+		});
+
+		socket.on( 'aviso_cerrar_persianas', function() {
+			var av = document.getElementById( "aviso_per" );
+
+			av.style.display='inline';
+			av.className='aviso';
+			av.innerHTML = 'El nivel de luminosidad está subiendo mucho. Debería cerrar las persianas. Si sigue subiendo, se cerrarán automáticamente.';
+		});
+
+		socket.on( 'nueva_persiana_agente', function( estado ) {
+			var av = document.getElementById( "aviso_per" );
+
+			if( estado == 'abiertas' )
+				av.innerHTML = 'Las persianas se han abierto automáticamente debido a que el nivel de luminosidad registrado era demasiado bajo.';
+			else
+				av.innerHTML = 'Las persianas se han cerrado automáticamente debido a que el nivel de luminosidad registrado era demasiado alto.';
+
+			av.className='peligro';
+			av.style.display='inline';
+		});
+
+		socket.on( 'aviso_encender_ac', function() {
+			var av = document.getElementById( "aviso_ac" );
+
+			av.style.display = 'inline';
+			av.className = 'aviso';
+			av.innerHTML = 'La temperatura está subiendo mucho. Debería encender el aire acondicionado. Si sigue subiendo, se encenderá automáticamente.';
+		});
+
+		socket.on( 'aviso_apagar_ac', function() {
+			var av = document.getElementById( "aviso_ac" );
+
+			av.style.display = 'inline';
+			av.className = 'aviso';
+			av.innerHTML = 'La temperatura está bajando mucho. Debería apagar el aire acondicionado. Si sigue bajando, se apagará automáticamente.';
+		});
+
+		socket.on( 'nuevo_ac_agente', function( estado ) {
+			var av = document.getElementById( "aviso_ac" );
+
+			if( estado == 'encendido' )
+				av.innerHTML = 'El aire acondicionado se ha encendido automáticamente debido a que la temperatura registrada era demasiado alta.';
+			else
+				av.innerHTML = 'El aire acondicionado se ha apagado automáticamente debido a que la temperatura registrada era demasiado baja.';
+
+			av.className='peligro';
+			av.style.display='inline';
+		});
+
+		socket.on( 'quitar_aviso_persianas', function() {
+			var av = document.getElementById( "aviso_per" );
+
+			if( window.getComputedStyle( av ).display === 'inline' )
+				if( av.className === 'aviso' )
+					quitarCualquierAvisoPersianas();
+		});
+
+		socket.on( 'quitar_aviso_ac', function() {
+			var av = document.getElementById( "aviso_ac" );
+
+			if( window.getComputedStyle( av ).display === 'inline' )
+				if( av.className === 'aviso' )
+					quitarCualquierAvisoAC();
+		});
 	</script>
 
 </html>

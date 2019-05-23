@@ -4,32 +4,53 @@
 
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 		<title>Agente</title>
+		<link href="estilo.css" rel="stylesheet" type="text/css">
 
 	</head>
 
 	<body>
 
-		<h2> Agente regulador automático </h2>
-		<h3> Temperaturas </h3>
-		<ul>
-			<li> Temperatura mínima para cambio: 5ºC </li>
-			<li> Temperatura mínima para aviso: 15ºC </li>
-			<li> Temperatura máxima para aviso: 35ºC </li>
-			<li> Tempeartura máxima para cambio: 40ªC </li>
-		</ul>
-		<h3> Luminosidad </h3>
-		<ul>
-			<li> Luminosidad mínima para cambio: 20% </li>
-			<li> Luminosidad mínima para aviso: 30% </li>
-			<li> Luminosidad máxima para aviso: 70% </li>
-			<li> Luminosidad máxima para cambio: 80% </li>
-		</ul>
+		<div class="contenedor">
+			<div class="panel_izq">
+				<h1 class="titulo"> Agente regulador automático </h2>
+				<h2> Temperaturas </h3>
+				<ul>
+					<li> Temperatura mínima para cambio: 5ºC </li>
+					<li> Temperatura mínima para aviso: 15ºC </li>
+					<li> Temperatura máxima para aviso: 35ºC </li>
+					<li> Tempeartura máxima para cambio: 40ªC </li>
+				</ul>
+				<h2> Luminosidad </h3>
+				<ul>
+					<li> Luminosidad mínima para cambio: 20% </li>
+					<li> Luminosidad mínima para aviso: 30% </li>
+					<li> Luminosidad máxima para aviso: 70% </li>
+					<li> Luminosidad máxima para cambio: 80% </li>
+				</ul>
+			</div>
+
+			<div class="panel_valores">
+				<div id="div_valores">
+					<h2> Valores actuales </h2>
+					<p> Luminosidad: <span id="actual_lum"></span> </p>
+					<p> Temperatura: <span id="actual_tem"></span> </p>
+				</div>
+
+				<div id="div_estados">
+					<h2> Persianas </h2>
+					<p> Estado: <span id="actual_per"></span> </p>
+
+					<h2> Aire Acondicionado </h2>
+					<p> Estado: <span id="actual_ac"></span> </p>
+				</div>
+			</div>
+		</div>
 
 	</body>
 
 	<script src="/socket.io/socket.io.js"></script>
 	<script type="text/javascript">
-		var serviceURL = document.URL;
+		var serviceURL = "http://localhost:8080/";
 		var socket = io.connect( serviceURL );
 
 		var temp_min_ca = 5;
@@ -42,47 +63,86 @@
 		var lum_max_av = 70;
 		var lum_max_ca = 80;
 
-		var temp;
-		var lum;
+		var temperatura;
+		var luminosidad;
 		var persianas;
-		var ac;
+		var aire;
+		var aviso_persianas = false;
+		var aviso_ac = false;
 
 		function comprobarLuminosidad() {
-			if( lum <= 20 && persianas == "cerradas" )
-				socket.emit( 'abrir_persianas' );
-			else if( lum > 20 && lum <= 30 && persianas == "cerradas" )
+			if( luminosidad <= 20 && persianas == "cerradas" )
+				socket.emit( 'forzar_persianas' );
+			else if( luminosidad > 20 && luminosidad <= 30 && persianas == "cerradas" ) {
 				socket.emit( 'aviso_abrir_persianas' );
-			else if( lum >= 70 && lum < 80 && persianas == "abiertas" )
+				aviso_persianas = true;
+			} else if( luminosidad >= 70 && luminosidad < 80 && persianas == "abiertas" ) {
 				socket.emit( 'aviso_cerrar_persianas' );
-			else if( lum >= 80 && persianas == "abiertas" )
-				socket.emit( 'cerrar_persianas' );
+				aviso_persianas = true;
+			} else if( luminosidad >= 80 && persianas == "abiertas" )
+				socket.emit( 'forzar_persianas' );
+			else if( aviso_persianas ) {
+				socket.emit( 'quitar_aviso_persianas' );
+				aviso_persianas = false;
+			}
 		}
 
 		function comprobarTemperatura() {
-			if( temp <= 5 && ac == "encendido" )
-				socket.emit( 'apagar_ac' );
-			else if( temp > 5 && temp <= 15 && ac == "encendido" )
+			if( temperatura <= 5 && aire == "encendido" )
+				socket.emit( 'forzar_ac' );
+			else if( temperatura > 5 && temperatura <= 15 && aire == "encendido" ) {
 				socket.emit( 'aviso_apagar_ac' );
-			else if( temp >= 35 && temp < 40 && ac == "apagado" )
+				aviso_ac = true;
+			} else if( temperatura >= 35 && temperatura < 40 && aire == "apagado" ) {
 				socket.emit( 'aviso_encender_ac' );
-			else if( temp >= 40 && ac == "apagado" )
-				socket.emit( 'encender_ac' );
+				aviso_ac = true;
+			} else if( temperatura >= 40 && aire == "apagado" )
+				socket.emit( 'forzar_ac' );
+			else if( aviso_ac ) {
+				socket.emit( 'quitar_aviso_ac' );
+				aviso_ac = false;
+			}
 		}
 
-		socket.on( 'mostrar', function( nuevosValores ) {
-			temp = nuevosValores.tem;
-			lum  = nuevosValores.lum;
+		socket.on( 'nueva_persiana', function( per ) {
+			persianas = per;
+			document.getElementById( "actual_per" ).innerHTML = persianas;
+		});
 
-			comprobarTemperatura();
+		socket.on( 'nuevo_ac', function( ac ) {
+			aire = ac;
+			document.getElementById( "actual_ac" ).innerHTML = aire;
+		});
+
+		socket.on( 'nueva_luminosidad', function( lum ) {
+			luminosidad = lum;
+			document.getElementById( "actual_lum" ).innerHTML = luminosidad;
 			comprobarLuminosidad();
 		});
 
-		socket.on( 'nuevo_estado_persiana', function( estado ) {
-			persianas = estado;
+		socket.on( 'nueva_temperatura', function( tem ) {
+			temperatura = tem;
+			document.getElementById( "actual_tem" ).innerHTML = temperatura;
+			comprobarTemperatura();
 		});
 
-		socket.on( 'nuevo_estado_ac', function( estado ) {
-			ac = estado;
+		socket.on( 'peticion_tipo', function() {
+			socket.emit( 'respuesta_tipo', 'Agente' );
+		});
+
+		socket.on( 'inicializar', function( datos ) {
+			luminosidad = datos.lum;
+			temperatura = datos.tem;
+			persianas = datos.per;
+			aire = datos.ac;
+
+			document.getElementById( "actual_lum" ).innerHTML = luminosidad;
+			document.getElementById( "actual_tem" ).innerHTML = temperatura;
+			document.getElementById( "actual_per" ).innerHTML = persianas;
+			document.getElementById( "actual_ac" ).innerHTML = aire;
+
+			comprobarLuminosidad();
+			comprobarTemperatura();
 		});
 	</script>
 

@@ -4,24 +4,42 @@
 
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 		<title>Sensor</title>
+		<link href="estilo.css" rel="stylesheet" type="text/css">
 
 	</head>
 
 	<body>
 
-		<div id="form_sensor">
-			<h2> Simulación de sensores </h2>
-			<form action="javascript:void(0);" onSubmit="javascript:actualizarValores();">
-				Luminosidad: <input type="label" id="form_lum" /><br />
-				Temperatura: <input type="label" id="form_tem" /><br />
-				<input type="submit" value="Actualizar" />
-			</form>
-		</div>
+		<div class="contenedor">
+			<div class="panel_izq">
+			<h1 class="titulo"> Sensor </h1>
+				<div id="form_sensor">
+					<h2> Entradas de los sensores </h2>
+					<h1 id="url"> </h1>
+					<form action="javascript:void(0);" onSubmit="javascript:actualizarLuminosidad();">
+						Luminosidad: <input type="text" id="form_lum" /> <input type = "submit" value="Actualizar" /><br />
+					</form>
+					<form action="javascript:void(0);" onSubmit="javascript:actualizarTemperatura();">
+						Temperatura: <input type="label" id="form_tem" /> <input type = "submit" value="Actualizar" /><br />
+					</form>
+				</div>
+			</div>
 
-		<div id="div_valores">
-			<h2> Valores actuales </h2>
-			<p> Luminosidad: <span id="actual_lum"></span> </p>
-			<p> Temperatura: <span id="actual_tem"></span> </p>
+			<div class="panel_valores">
+				<div id="div_valores">
+					<h2> Valores actuales </h2>
+					<p> Luminosidad: <span id="actual_lum"></span> </p>
+					<p> Temperatura: <span id="actual_tem"></span> </p>
+				</div>
+
+				<div id="div_estados">
+					<h2> Persianas </h2>
+					<p> Estado: <span id="actual_per"></span> </p>
+
+					<h2> Aire Acondicionado </h2>
+					<p> Estado: <span id="actual_ac"></span> </p>
+				</div>
+			</div>
 		</div>
 			
 	</body>
@@ -29,31 +47,103 @@
 	<script src="/socket.io/socket.io.js"></script>
 	<script type="text/javascript">
 
-		var serviceURL = document.URL;
+		var serviceURL = "http://localhost:8080/";
+
 		var socket = io.connect( serviceURL );
 
-		function actualizarValores() {
-			var luminosidad = document.getElementById( 'form_lum' );
-			var temperatura = document.getElementById( 'form_tem' );
+		var luminosidad;
+		var temperatura;
+		var persianas;
+		var aire;
 
-			socket.emit( 'actualizar', {lum:luminosidad, tem:temperatura} );
-			socket.emit( 'mostrar', )
+		function actualizarLuminosidad() {
+			var luminosidad = document.getElementById( 'form_lum' ).value;
+			socket.emit( 'actualizar_luminosidad', luminosidad );
 		}
 
-		function mostrarValores( nuevosValores ) {
-			var act_lum = document.getElementById( 'actual_lum' );
-			var act_tem = document.getElementById( 'actual_tem' );
-
-			act_lum.innerHTML = nuevosValores.lum;
-			act_tem.innerHTML = nuevosValores.tem;
+		function actualizarTemperatura() {
+			var temperatura = document.getElementById( 'form_tem' ).value;
+			socket.emit( 'actualizar_temperatura', temperatura );
 		}
 
-		socket.on( 'connect', function() {
-
+		socket.on( 'peticion_tipo', function() {
+			socket.emit( 'respuesta_tipo', 'Sensor' );
 		});
 
-		socket.on( 'mostrar', function( nuevosValores ) {
-			mostrarValores( nuevosValores );
+		socket.on( 'inicializar', function( datos ) {
+			luminosidad = datos.lum;
+			temperatura = datos.tem;
+			persianas = datos.per;
+			aire = datos.ac;
+
+			document.getElementById( "actual_lum" ).innerHTML = luminosidad;
+			document.getElementById( "actual_tem" ).innerHTML = temperatura;
+			document.getElementById( "actual_per" ).innerHTML = persianas;
+			document.getElementById( "actual_ac"  ).innerHTML = aire;
+		});
+
+		socket.on( 'nueva_luminosidad', function( lum ) {
+			luminosidad = lum;
+			document.getElementById( "actual_lum" ).innerHTML = luminosidad;
+		});
+
+		socket.on( 'nueva_temperatura', function( tem ) {
+			temperatura = tem;
+			document.getElementById( "actual_tem" ).innerHTML = temperatura;
+		});
+
+		socket.on( 'nueva_persiana', function( per ) {
+			persianas = per;
+			document.getElementById( "actual_per" ).innerHTML = persianas;
+		});
+
+		socket.on( 'nuevo_ac', function( ac ) {
+			aire = ac;
+			document.getElementById( "actual_ac" ).innerHTML = aire;
+		});
+
+		socket.on( 'solicitud_persianas', function() {
+			var estado_persianas;
+
+			if( persianas == "abiertas" )
+				estado_persianas = "cerradas";
+			else
+				estado_persianas = "abiertas";
+
+			socket.emit( 'adelante_persianas', estado_persianas );
+		});
+
+		socket.on( 'solicitud_persianas_agente', function() {
+			var estado_persianas;
+
+			if( persianas == "abiertas" )
+				estado_persianas = "cerradas";
+			else
+				estado_persianas = "abiertas";
+
+			socket.emit( 'adelante_persianas_agente', estado_persianas );
+		});
+
+		socket.on( 'solicitud_ac', function() {
+			var estado_aire;
+
+			if( aire == "encendido" )
+				estado_aire = "apagado";
+			else
+				estado_aire = "encendido";
+
+			socket.emit( 'adelante_ac', estado_aire );
+		});
+
+		socket.on( 'solicitud_ac_agente', function() {
+			var estado_aire;
+
+			if( aire == "encendido" )
+				estado_aire = "apagado";
+			else
+				estado_aire = "encendido";
+
+			socket.emit( 'adelante_ac_agente', estado_aire ); 
 		});
 
 

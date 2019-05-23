@@ -14,8 +14,14 @@ var mimeTypes = {"html":"text/html", "jpeg":"image/jpeg", "jpg":"image/jpeg",
 var httpServer = http.createServer(
 	function( request, response ) {
 		var uri = url.parse( request.url ).pathname;
-		if( uri == "/" ) uri = "/cliente.html";
+
+		// if( uri == '/sensor.html' ) uri = 'sensor.html';
+		// else if( uri == '/agente.html' ) uri = 'agente.html';
+		// else if( uri == '/cliente.html' ) uri = 'cliente.html';
+		if( uri == '/' ) uri = 'cliente.html';
+
 		var fname = path.join( process.cwd(), uri );
+
 		fs.exists( fname, function( exists ) {
 			if( exists ) {
 				fs.readFile( fname, function( err, data ) {
@@ -43,74 +49,176 @@ var httpServer = http.createServer(
 	}
 );
 
-var mongoClient = new MongoClient( new MongoServer( 'localhost', 27017 ) );
-var luminosidad = 0;
-var temperatura = 0;
+var luminosidad = 50;
+var temperatura = 25;
 var persianas = "abiertas";
-var ac = "apagado";
-var clientes = new Array();
+var aire = "apagado";
 
-mongoClient.connect( "mongodb://localhost:27017/mibd", function( err, db ) {
+var allConnections = new Array();
+var sensor;
+
+MongoClient.connect( "mongodb://127.0.0.1:27017", function( err, db ) {
+	if( !err )
+		console.log( "Conectado a Base de Datos" );
+	else
+		console.log( "Error al conectar a la Base de datos: " + err );
+
+	var dbo = db.db( "datosSensores" );
+
 	httpServer.listen( 8080 );
 	var io = socketio.listen( httpServer );
 
-	db.createCollection( "ejercicio", function( err, collection ) {
-		io.sockets.on( 'connection', function( client ) {
+	dbo.createCollection( "conexiones", function( err, collection1 ) {
+		if( !err )
+			console.log( "Colección creada en Mongo: " + collection1.collectionName );
+	});
 
-			// Un sensor cambia los valores
-			client.on( 'actualizar', function( data ) {
-				luminosidad = data.lum;
-				temperatura = data.tem;
+	dbo.createCollection( "cambiosEstado", function( err, collection2 ) {
+		if( !err )
+			console.log( "Colección creada en Mongo: " + collection2.collectionName );
+	});
 
-				collection.insert( lum:luminosidad, tem:temperatura, tiempo: new Date() );
+	io.sockets.on( 'connection', function( client ) {
+		client.emit( 'peticion_tipo' );
 
-				io.sockets.emit( 'mostrar', {lum:luminosidad, tem:temperatura} );
-			});
+		// El cliente envía qué tipo de conexión es (sensor, agente o cliente)
+		client.on( 'respuesta_tipo', function( tipo ) {
+			if( tipo == "Cliente" )
+				allConnections.push( {address:client.request.connection.remoteAddress,
+								  port:client.request.connection.remoteAddress} );
+			else if( tipo == "Sensor") sensor = client;
+				//allSensores.push( client );
 
-			// Un cliente cambia el estado de las persianas
-			client.on( 'cambiar_persiana', function() {
-				if( persianas == "abiertas" )
-					persianas = "cerradas";
-				else
-					persianas = "abiertas";
 
-				io.sockets.emit( 'nuevo_estado_persiana', persianas );
-			});
+			console.log( 'Nueva conexión desde ' + client.request.connection.remoteAddress +
+						 ':' + client.request.connection.remotePort + ', se trata de un ' +
+						 tipo );
 
-			// Un cliente cambia el estado del ac
-			client.on( 'cambiar_ac', function() {
-				if( ac == "apagado" )
-					ac = "encendido";
-				else
-					ac = "apagado";
+			client.emit( 'inicializar', {lum:luminosidad, tem:temperatura,
+										 per:persianas, ac:aire} );
+		});
 
-				io.sockets.emit( 'nuevo_estado_ac', ac );
-			});
+		// Un sensor manda una nueva luminosidad
+		client.on( 'actualizar_luminosidad', function( lum ) {
+			luminosidad = lum;
+			console.log( 'Nueva luminosidad detectada: ' + luminosidad );
+			io.sockets.emit( 'nueva_luminosidad', luminosidad );
+		});
 
-			// Un agente abre las persianas
-			client.on( 'abrir_persianas' , function() {
-				persianas = "abiertas";
-				io.sockets.emit( 'nuevo_estado_persiana', persianas );
-			});
+		// Un sensor manda una nueva temperatura
+		client.on( 'actualizar_temperatura', function( tem ) {
+			temperatura = tem;
+			console.log( 'Nueva temperatura detectada: ' + temperatura );
+			io.sockets.emit( 'nueva_temperatura', temperatura );
+		});
 
-			// Un agente cierra las persianas
-			client.on( 'cerrar_persianas', function() {
-				persianas = "cerradas";
-				io.sockets.emit( 'nuevo_estado_persiana', persianas );
-			});
+		// Un cliente solicita cambiar el estado de las persianas
+		client.on( 'cambiar_persianas', function() {
+			console.log( 'Nueva solicitud para cambiar el estado de las persianas.' );
+			io.sockets.emit( 'solicitud_persianas' );
+		});
 
-			// Un agente enciende el ac
-			client.on( 'encender_ac', function() {
-				ac = "encendido";
-				io.sockets.emit( 'nuevo_estado_ac', ac );
-			});
+		// Un sensor permite cambiar el estado de las persianas y manda el nuevo
+		client.on( 'adelante_persianas', function( nuevo_estado ) {
+			persianas = nuevo_estado;
+			console.log( 'Nuevo estado de las persianas: ' + persianas );
+			io.sockets.emit( 'nueva_persiana', persianas );
+		});
 
-			// Un agente apaga el ac
-			client.on( 'apagar_ac', function() {
-				ac = "apagado";
-				io.sockets.emit( 'nuevo_estado_ac', ac );
-			});
+		// Un sensor permite cambiar el estado de las persianas por un agente y manda el nuevo
+		client.on( 'adelante_persianas_agente', function( nuevo_estado ) {
+			persianas = nuevo_estado;
+			console.log( 'Nuevo estado de las persianas: ' + persianas );
+			io.sockets.emit( 'nueva_persiana', persianas );
+			io.sockets.emit( 'nueva_persiana_agente', persianas );
+		});
 
+		// Un cliente solicita cambiar el estado del ac
+		client.on( 'cambiar_ac', function() {
+			console.log( 'Nueva solicitud para cambiar el estado del ac.' );
+			io.sockets.emit( 'solicitud_ac' );
+		});
+
+		// Un sensor permite cambiar el estado del ac por un agente y manda el nuevo
+		client.on( 'adelante_ac_agente', function( nuevo_estado ) {
+			aire = nuevo_estado;
+			console.log( 'Nuevo estado del ac: ' + aire );
+			io.sockets.emit( 'nuevo_ac', aire );
+			io.sockets.emit( 'nuevo_ac_agente', aire );
+		});
+
+		// Un sensor permite cambiar el estado del ac y manda el nuevo
+		client.on( 'adelante_ac', function( nuevo_estado ) {
+			aire = nuevo_estado;
+			console.log( 'Nuevo estado del ac: ' + aire );
+			io.sockets.emit( 'nuevo_ac', aire );
+		});
+
+		// Un agente avisa que hay que abrir las persianas
+		client.on( 'aviso_abrir_persianas', function() {
+			console.log( 'El agente avisa a los clientes para que abran las persianas.' );
+			io.sockets.emit( 'aviso_abrir_persianas' );
+		});
+
+		// Un agente avisa que hay que cerrar las persianas
+		client.on( 'aviso_cerrar_persianas', function() {
+			console.log( 'El agente avisa a los clientes para que cierren las persianas.' );
+			io.sockets.emit( 'aviso_cerrar_persianas' );
+		});
+
+		// Un agente obliga a cambiar el estado de las persianas
+		client.on( 'forzar_persianas', function() {
+			console.log( 'El agente quiere modificar el estado de las persianas.' );
+			io.sockets.emit( 'solicitud_persianas_agente' );
+		});
+
+		// Un agente avisa que hay que encender el ac
+		client.on( 'aviso_encender_ac', function() {
+			console.log( 'El agente avisa a los clientes para que enciendan el ac.' );
+			io.sockets.emit( 'aviso_encender_ac' );
+		});
+
+		// Un agente avisa que hay que apagar el ac
+		client.on( 'aviso_apagar_ac', function() {
+			console.log( 'El agente avisa a los clientes para que apaguen el ac.' );
+			io.sockets.emit( 'aviso_apagar_ac' );
+		});
+
+		// Un agente obliga a cambiar el estado del ac
+		client.on( 'forzar_ac', function() {
+			console.log( 'El agente quiere modificar el estado del ac.' );
+			io.sockets.emit( 'solicitud_ac_agente' );
+		});
+
+		// Un agente quita los avisos de persianas (amarillos) de los clientes
+		client.on( 'quitar_aviso_persianas', function() {
+			console.log( 'El agente detecta que el nivel de luminosidad vuelve a ser normal.' );
+			io.sockets.emit( 'quitar_aviso_persianas' );
+		});
+
+		// Un agente quita los avisos de ac (amarillos) de los clientes
+		client.on( 'quitar_aviso_ac', function() {
+			console.log( 'El agente detecta que la temperatura vuelve a ser normal.' );
+			io.sockets.emit( 'quitar_aviso_ac' );
+		});
+
+		// Desconexión
+		client.on( 'disconnect', function() {
+			var index = -1;
+
+			for( var i = 0; i < allConnections.length; i++ )
+				if( allConnections[i].address == client.request.connection.remoteAddress )
+					if( allConnections[i].port == client.request.connection.remotePort )
+						index = i;
+
+			if( index != -1 ) {
+				allConnections.splice( index, 1 );
+				console.log( 'El usuario ' + client.request.connection.remoteAddress +
+							 ' se ha desconectado.' );
+			}
 		});
 	});
+
 });
+
+console.log( "Servidor iniciado.");
