@@ -36,6 +36,11 @@
 				<p class="aviso" id="aviso_ac"> </p>
 			</div>
 		</div>
+
+		<div class="conexiones">
+			<h2>Conexiones en el servidor</h2>
+			<div id="lista_conexiones"></div>
+		</div>
 			
 	</body>
 
@@ -84,6 +89,20 @@
 		function cambiarAC() {
 			socket.emit( 'cambiar_ac' );
 		}
+
+		function actualizarConexiones( datos ) {
+	  		var listContainer = document.getElementById( 'lista_conexiones' );
+	  		listContainer.innerHTML='';
+	  		var listElement = document.createElement( 'ul' );
+	  		listContainer.appendChild( listElement );
+	  		var num = datos.length;
+	  		for( var i = 0; i < num; i++ ){
+	  			var listItem = document.createElement( 'li' );
+	  			listItem.innerHTML = datos[i].tipo + ': ' + datos[i].identificador +
+	  								 ' (' + datos[i].address + ':' + datos[i].port + ')';
+	  			listElement.appendChild( listItem );
+	  		}
+	    }
 
 		socket.on( 'peticion_tipo', function() {
 			socket.emit( 'respuesta_tipo', 'Cliente' );
@@ -197,6 +216,10 @@
 			if( window.getComputedStyle( av ).display === 'inline' )
 				if( av.className === 'aviso' )
 					quitarCualquierAvisoAC();
+		});
+
+		socket.on( 'conexiones', function( datos ) {
+			actualizarConexiones( datos );
 		});
 	</script>
 

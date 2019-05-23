@@ -38,3 +38,11 @@
 	color: red;
 	display: none;
 }
+
+.conexiones {
+	display: table-cell;
+	border: 1px solid black;
+	padding: 20px 50px 20px 50px;
+	background: #ddd;
+	width: 865px;;
+}

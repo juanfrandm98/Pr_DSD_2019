@@ -68,11 +68,13 @@ MongoClient.connect( "mongodb://127.0.0.1:27017", function( err, db ) {
 	httpServer.listen( 8080 );
 	var io = socketio.listen( httpServer );
 
+	dbo.collection( "conexiones" ).drop();
 	dbo.createCollection( "conexiones", function( err, collection1 ) {
 		if( !err )
 			console.log( "Colección creada en Mongo: " + collection1.collectionName );
 	});
 
+	dbo.collection( "cambiosEstado" ).drop();
 	dbo.createCollection( "cambiosEstado", function( err, collection2 ) {
 		if( !err )
 			console.log( "Colección creada en Mongo: " + collection2.collectionName );
@@ -83,16 +85,23 @@ MongoClient.connect( "mongodb://127.0.0.1:27017", function( err, db ) {
 
 		// El cliente envía qué tipo de conexión es (sensor, agente o cliente)
 		client.on( 'respuesta_tipo', function( tipo ) {
-			if( tipo == "Cliente" )
-				allConnections.push( {address:client.request.connection.remoteAddress,
-								  port:client.request.connection.remoteAddress} );
-			else if( tipo == "Sensor") sensor = client;
-				//allSensores.push( client );
-
-
 			console.log( 'Nueva conexión desde ' + client.request.connection.remoteAddress +
 						 ':' + client.request.connection.remotePort + ', se trata de un ' +
 						 tipo );
+
+			identificador = client.id;
+			dbo.collection( "conexiones" ).insertOne( {identificador:identificador,
+													 address:client.request.connection.remoteAddress,
+													 port:client.request.connection.remotePort,
+													 tipo:tipo}, {safe:true}, function( err, result ) {
+				if( !err ) {
+					console.log( "Insertado en la colección de Mongo usuario " + identificador + " (" + tipo + ")." );
+					dbo.collection( "conexiones" ).find().toArray( function( err, results ) {
+						io.sockets.emit( 'conexiones', results );
+					});
+				} else
+					console.log( "Error al insertar datos en la colección." );
+			});
 
 			client.emit( 'inicializar', {lum:luminosidad, tem:temperatura,
 										 per:persianas, ac:aire} );
@@ -204,18 +213,17 @@ MongoClient.connect( "mongodb://127.0.0.1:27017", function( err, db ) {
 
 		// Desconexión
 		client.on( 'disconnect', function() {
-			var index = -1;
+			identificador = client.id;
 
-			for( var i = 0; i < allConnections.length; i++ )
-				if( allConnections[i].address == client.request.connection.remoteAddress )
-					if( allConnections[i].port == client.request.connection.remotePort )
-						index = i;
-
-			if( index != -1 ) {
-				allConnections.splice( index, 1 );
-				console.log( 'El usuario ' + client.request.connection.remoteAddress +
-							 ' se ha desconectado.' );
-			}
+			dbo.collection( "conexiones" ).findOneAndDelete( {identificador:identificador}, {safe:true}, function( err, result ) {
+				if( !err ) {
+					console.log( 'El usuario ' + identificador + ' se ha desconectado.' );
+					dbo.collection( "conexiones" ).find().toArray( function( err, results ) {
+						io.sockets.emit( 'conexiones', results );
+					});
+				} else
+					console.log( 'El usuario ' + identificador + ' no pudo desconectarse.' );
+			});
 		});
 	});
 

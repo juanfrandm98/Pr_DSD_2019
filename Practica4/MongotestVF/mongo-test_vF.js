@@ -52,6 +52,7 @@ MongoClient.connect("mongodb://127.0.0.1:27017/", function(err, db) {
 	httpServer.listen(8080);
 	var io = socketio.listen(httpServer);
 
+	dbo.collection( "pruebaBD2" ).drop();
 	dbo.createCollection("pruebaBD2", function(err, collection){
 		if(!err){
 			console.log("Colección creada en Mongo: " + collection.collectionName);
@@ -87,7 +88,10 @@ MongoClient.connect("mongodb://127.0.0.1:27017/", function(err, db) {
 				console.log("Cliente id: " + identificador);
 				dbo.collection("pruebaBD2").findOneAndDelete({identificador: identificador}, {safe:true}, function(err, result) {
 					if(!err){
-						io.sockets.emit('all-connections', result);
+						//io.sockets.emit('all-connections', result);
+						dbo.collection("pruebaBD2").find().toArray(function(err, results){
+						io.sockets.emit('all-connections', results);
+					});
 						console.log('El usuario registrado con marca de tiempo: '+identificador+' se ha desconectado');
 					}
 					else{
