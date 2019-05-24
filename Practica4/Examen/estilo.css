@@ -1,0 +1,47 @@
+.contenedor {
+	display: inline-block;
+}
+
+.panel_izq {
+	display: table-cell;
+	border: 1px solid black;
+	padding: 20px 50px 20px 50px;
+	background: #ddd;
+}
+
+.titulo {
+	text-decoration: underline;
+}
+
+.panel_valores {
+	display: table-cell;
+	border: 1px solid black;
+	padding: 20px 50px 20px 50px;
+	background: #ddd;
+	max-width: 300px;
+}
+
+.panel_avisos {
+	display: table-cell;
+	border: 1px solid black;
+	padding: 20px 50px 20px 50px;
+	background: #ddd;
+	width: 500px;
+}
+
+.aviso {
+	color: orange;
+	display: none;
+}
+			
+.peligro {
+	color: red;
+	display: none;
+}
+
+.conexiones, .historico {
+	border: 1px solid black;
+	padding: 20px 50px 20px 50px;
+	background: #ddd;
+	width: 865px;;
+}

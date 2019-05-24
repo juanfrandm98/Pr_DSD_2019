@@ -1,0 +1,209 @@
+<html>
+
+	<head>
+
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>Agente</title>
+		<link href="estilo.css" rel="stylesheet" type="text/css">
+
+	</head>
+
+	<body>
+
+		<div class="contenedor">
+			<div class="panel_izq">
+				<h1 class="titulo"> Agente regulador automático </h1>
+				<h2> Temperaturas </h2>
+				<ul>
+					<li> Temperatura mínima para cambio: 5ºC </li>
+					<li> Temperatura mínima para aviso: 15ºC </li>
+					<li> Temperatura máxima para aviso: 35ºC </li>
+					<li> Tempeartura máxima para cambio: 40ªC </li>
+				</ul>
+				<h2> Luminosidad </h2>
+				<ul>
+					<li> Luminosidad mínima para cambio: 20% </li>
+					<li> Luminosidad mínima para aviso: 30% </li>
+					<li> Luminosidad máxima para aviso: 70% </li>
+					<li> Luminosidad máxima para cambio: 80% </li>
+				</ul>
+				<h2> Estado </h2>
+				<span id="actual_agente"></span>
+			</div>
+
+			<div class="panel_valores">
+				<div id="div_valores">
+					<h2> Valores actuales </h2>
+					<p> Luminosidad: <span id="actual_lum"></span> </p>
+					<p> Temperatura: <span id="actual_tem"></span> </p>
+					<p> Presencia: <span id="actual_pre"></span> </p>
+				</div>
+
+				<div id="div_estados">
+					<h2> Persianas </h2>
+					<p> Estado: <span id="actual_per"></span> </p>
+
+					<h2> Aire Acondicionado </h2>
+					<p> Estado: <span id="actual_ac"></span> </p>
+
+					<h2> Televisión </h2>
+					<p> Estado: <span id="actual_tv"></span> </p>
+				</div>
+			</div>
+		</div>
+
+	</body>
+
+	<script src="/socket.io/socket.io.js"></script>
+	<script type="text/javascript">
+		var serviceURL = "http://localhost:8080/";
+		var socket = io.connect( serviceURL );
+
+		var temp_min_ca = 5;
+		var temp_min_av = 15;
+		var temp_max_av = 35;
+		var temp_max_ca = 40;
+
+		var lum_min_ca = 20;
+		var lum_min_av = 30;
+		var lum_max_av = 70;
+		var lum_max_ca = 80;
+
+		var temperatura;
+		var luminosidad;
+		var presencia;
+		var persianas;
+		var aire;
+		var television;
+		var aviso_persianas = false;
+		var aviso_ac = false;
+		var aviso_tv = false;
+		var estado;
+		var temporizador;
+
+		function comprobarLuminosidad() {
+			if( luminosidad <= 20 && persianas == "cerradas" )
+				socket.emit( 'forzar_persianas' );
+			else if( luminosidad > 20 && luminosidad <= 30 && persianas == "cerradas" ) {
+				socket.emit( 'aviso_abrir_persianas' );
+				aviso_persianas = true;
+			} else if( luminosidad >= 70 && luminosidad < 80 && persianas == "abiertas" ) {
+				socket.emit( 'aviso_cerrar_persianas' );
+				aviso_persianas = true;
+			} else if( luminosidad >= 80 && persianas == "abiertas" )
+				socket.emit( 'forzar_persianas' );
+			else if( aviso_persianas ) {
+				socket.emit( 'quitar_aviso_persianas' );
+				aviso_persianas = false;
+			}
+		}
+
+		function comprobarTemperatura() {
+			if( temperatura <= 5 && aire == "encendido" )
+				socket.emit( 'forzar_ac' );
+			else if( temperatura > 5 && temperatura <= 15 && aire == "encendido" ) {
+				socket.emit( 'aviso_apagar_ac' );
+				aviso_ac = true;
+			} else if( temperatura >= 35 && temperatura < 40 && aire == "apagado" ) {
+				socket.emit( 'aviso_encender_ac' );
+				aviso_ac = true;
+			} else if( temperatura >= 40 && aire == "apagado" )
+				socket.emit( 'forzar_ac' );
+			else if( aviso_ac ) {
+				socket.emit( 'quitar_aviso_ac' );
+				aviso_ac = false;
+			}
+		}
+
+		function apagarTelevision() {
+			socket.emit( 'forzar_tv' );
+		}
+
+		function comprobarTV() {
+			if( presencia == "no detectada" && television == "encendida" ) {
+				aviso_tv = true;
+				socket.emit( 'aviso_apagar_tv' );
+				temporizador = setTimeout( apagarTelevision, 3000 );
+			} else {
+				socket.emit( 'quitar_aviso_tv' );
+				aviso_tv = false;
+				clearTimeout( temporizador );
+			}
+		}
+
+		socket.on( 'nueva_persiana', function( per ) {
+			persianas = per;
+			document.getElementById( "actual_per" ).innerHTML = persianas;
+		});
+
+		socket.on( 'nuevo_ac', function( ac ) {
+			aire = ac;
+			document.getElementById( "actual_ac" ).innerHTML = aire;
+		});
+
+		socket.on( 'nueva_luminosidad', function( lum ) {
+			luminosidad = lum;
+			document.getElementById( "actual_lum" ).innerHTML = luminosidad;
+			if( estado_agente == "encendido" )
+				comprobarLuminosidad();
+		});
+
+		socket.on( 'nueva_temperatura', function( tem ) {
+			temperatura = tem;
+			document.getElementById( "actual_tem" ).innerHTML = temperatura;
+			if( estado_agente == "encendido" )
+				comprobarTemperatura();
+		});
+
+		socket.on( 'nueva_presencia', function( pre ) {
+			presencia = pre;
+			document.getElementById( "actual_pre" ).innerHTML = presencia;
+			if( estado_agente == "encendido" )
+				comprobarTV();
+		});
+
+		socket.on( 'nueva_tv', function( tv ) {
+			television = tv;
+			document.getElementById( "actual_tv" ).innerHTML = television;
+		});
+
+		socket.on( 'peticion_tipo', function() {
+			socket.emit( 'respuesta_tipo', 'Agente' );
+		});
+
+		socket.on( 'inicializar', function( datos ) {
+			luminosidad = datos.lum;
+			temperatura = datos.tem;
+			presencia = datos.pre;
+			persianas = datos.per;
+			aire = datos.ac;
+			television = datos.tv;
+			estado_agente = datos.estado;
+
+			document.getElementById( "actual_lum" ).innerHTML = luminosidad;
+			document.getElementById( "actual_tem" ).innerHTML = temperatura;
+			document.getElementById( "actual_pre" ).innerHTML = presencia;
+			document.getElementById( "actual_per" ).innerHTML = persianas;
+			document.getElementById( "actual_ac"  ).innerHTML = aire;
+			document.getElementById( "actual_tv"  ).innerHTML = television;
+			document.getElementById( "actual_agente" ).innerHTML = estado_agente;
+
+			if( estado_agente == "encendido" ) {
+				comprobarLuminosidad();
+				comprobarTemperatura();
+				comprobarTV();
+			}
+		});
+
+		socket.on( 'solicitud_cambio_agente', function() {
+			if( estado_agente == "encendido" )
+				estado_agente = "apagado";
+			else
+				estado_agente = "encendido";
+
+			socket.emit( 'adelante_agente', estado_agente );
+			document.getElementById( "actual_agente" ).innerHTML = estado_agente;
+		});
+	</script>
+
+</html>
